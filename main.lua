@@ -80,6 +80,7 @@ local whitelist = {}
 
 whitelist[CHATTER_START_TRADINGHOUSE] = true
 whitelist[CHATTER_START_STABLE] = true
+whitelist[CHATTER_START_SHOP] = true
 
 
 local IS, IF  -- interact scene, interact fragment
@@ -94,11 +95,11 @@ function addon:ShouldHideDialogue()
            return false
         end
 
-        if optionType == CHATTER_START_SHOP then
-            if optionString == 'Store (Pledge Master)' then  -- TODO: for other languages
-                return false
-            end
-        end
+        -- if optionType == CHATTER_START_SHOP then
+        --     if optionString == 'Store (Pledge Master)' then  -- TODO: for other languages
+        --         return false
+        --     end
+        -- end
     end
 
     return true
@@ -127,7 +128,7 @@ function addon:DialogueUpdated()
     if self:ShouldHideDialogue() then
         IF:Hide()
 
-        if IsConsoleUI() then
+        if IsInGamepadPreferredMode() or IsConsoleUI() then
             KEYBIND_STRIP:AddKeybindButtonGroup(IMMERSIVE_DIALOGUE_BUTTON_GROUP)
         end
     end
