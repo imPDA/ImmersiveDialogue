@@ -1,3 +1,5 @@
+local d = function(...) end
+
 local addon = {
     name = 'ImmersiveDialogue',
     displayName = 'Immersive Dialogue',
@@ -66,7 +68,7 @@ end
 -- local function OnChatterBegin(_, chatterOptionCount, debugSource)
 --     -- Catching a rogue event coming down that causes a UI error when a bad option count is passed down.  Root cause still unknown, this will just suppress the error.
 --     -- ESO-692130
---     if internalassert(chatterOptionCount <= MAX_CHATTER_OPTIONS, string.format("Tried to begin a chatter from source type %d with %d chatter options, which is invalid. Please notify a UI engineer.", debugSource, chatterOptionCount)) then
+--     if internalassert(chatterOptionCount <= MAX_CHATTER_OPTIONS, string.format('Tried to begin a chatter from source type %d with %d chatter options, which is invalid. Please notify a UI engineer.', debugSource, chatterOptionCount)) then
 --         self:InitializeInteractWindow(GetChatterGreeting())
 --         self:UpdateChatterOptions(chatterOptionCount, HIDE_BACK_TO_TOC_OPTION)
 --     end
@@ -74,16 +76,70 @@ end
 
 -- EVENT_CLIENT_INTERACT_RESULT
 
+local whitelist = {}
+
+whitelist[CHATTER_START_TRADINGHOUSE] = true
+whitelist[CHATTER_START_STABLE] = true
+
 
 local IS, IF  -- interact scene, interact fragment
 
+
+function addon:ShouldHideDialogue()
+    for o = 1, GetChatterOptionCount() do
+        local optionString, optionType, optionalArgument, isImportant, chosenBefore, teleportNPC, dialogueTone = GetChatterOption(o)
+        d(optionString, optionType)
+
+        if self.whitelist[optionType] then
+           return false
+        end
+
+        if optionType == CHATTER_START_SHOP then
+            if optionString == 'Store (Pledge Master)' then  -- TODO: for other languages
+                return false
+            end
+        end
+    end
+
+    return true
+end
+
+function ImmersiveDialogue_ShowDialogue()
+    d('ImmersiveDialogue_ShowDialogue')
+    if SCENE_MANAGER.currentScene ~= IS then return end
+
+    IF:Show()
+end
+
+local IMMERSIVE_DIALOGUE_BUTTON_GROUP = {
+    {
+        name = 'Show Dialogue',
+        keybind = 'UI_SHORTCUT_QUATERNARY',
+        callback = ImmersiveDialogue_ShowDialogue,
+    },
+    alignment = KEYBIND_STRIP_ALIGN_CENTER,
+}
 
 function addon:DialogueUpdated()
     -- EVENT_CHATTER_BEGIN
     d('Chatter begin')
 
-    IF:Hide()
+    if self:ShouldHideDialogue() then
+        IF:Hide()
+
+        if IsConsoleUI() then
+            KEYBIND_STRIP:AddKeybindButtonGroup(IMMERSIVE_DIALOGUE_BUTTON_GROUP)
+        end
+    end
 end
+
+-- for o = 1, GetChatterOptionCount() do
+--     local optionType = select(2, GetChatterOption(o))
+--     if optionType == CHATTER_START_STABLE then
+--         SelectChatterOption(o)
+--         break
+--     end
+-- end
 
 function addon:OnVOPlayingStateChanged()
     d('VOPlayingStateChanged')
@@ -99,10 +155,7 @@ end
 
 
 function addon:Initialize()
-    -- InitializeMenu()
-
-    -- local INTERACT_SCENE = SCENE_MANAGER:GetScene('interact')
-    -- local INTERACT_FRAGMENT = INTERACT_FRAGMENT
+    self.whitelist = whitelist
 
     if IsInGamepadPreferredMode() then
         IS = SCENE_MANAGER:GetScene('gamepadInteract')
@@ -125,13 +178,6 @@ function addon:Initialize()
 	EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_QUEST_OFFERED, function() self:DialogueUpdated() end )
 	EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_CONVERSATION_UPDATED, function() self:DialogueUpdated() end )
     EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_INTERACT_VO_PLAYING_STATE_UPDATED, function() self:OnVOPlayingStateChanged() end)
-end
-
-function ImmersiveDialogue_ShowDialogue()
-    d('ImmersiveDialogue_ShowDialogue')
-    if SCENE_MANAGER.currentScene ~= IS then return end
-
-    IF:Show()
 end
 
 -- ----------------------------------------------------------------------------

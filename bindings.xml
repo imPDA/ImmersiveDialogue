@@ -1,9 +1,9 @@
-<Bindings>
-	<Layer name='SI_KEYBINDINGS_LAYER_GENERAL'>
-		<Category name='Immersive Dialogue'>
-			<Action name='SHOW_DIALOGUE'>
-				<Down>ImmersiveDialogue_ShowDialogue()</Down>
-			</Action>
-		</Category>
-	</Layer>
+<Bindings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sir.insidi.at/or/schema/esobindings.xsd">
+	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="ImmersiveDialogue">
+            <Action name="IMMDIA_SHOW_DIALOGUE">
+                <Up>ImmersiveDialogue_ShowDialogue()</Up>
+            </Action>
+        </Category>
+    </Layer>
 </Bindings>
