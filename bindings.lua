@@ -1,1 +1,2 @@
 ZO_CreateStringId('SI_BINDING_NAME_IMMDIA_SHOW_DIALOGUE', 'Show Dialogue')
+ZO_CreateStringId('SI_BINDING_NAME_IMMDIA_HIDE_DIALOGUE', 'Hide Dialogue')

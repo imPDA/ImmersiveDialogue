@@ -81,6 +81,7 @@ local whitelist = {}
 whitelist[CHATTER_START_TRADINGHOUSE] = true
 whitelist[CHATTER_START_STABLE] = true
 whitelist[CHATTER_START_SHOP] = true
+whitelist[CHATTER_TALK_CHOICE_PAY_BOUNTY] = true
 
 
 local IS, IF  -- interact scene, interact fragment
@@ -105,21 +106,58 @@ function addon:ShouldHideDialogue()
     return true
 end
 
+local IMMERSIVE_DIALOGUE_BUTTON_GROUP_SHOW = {
+    {
+        name = 'Show Dialogue',
+        keybind = 'UI_SHORTCUT_QUATERNARY',
+        -- callback = ImmersiveDialogue_ShowDialogue,
+    },
+    alignment = KEYBIND_STRIP_ALIGN_CENTER,
+}
+
+local IMMERSIVE_DIALOGUE_BUTTON_GROUP_HIDE = {
+    {
+        name = 'Hide Dialogue',
+        keybind = 'UI_SHORTCUT_QUATERNARY',
+        -- callback = ImmersiveDialogue_HideDialogue,
+    },
+    alignment = KEYBIND_STRIP_ALIGN_CENTER,
+}
+
+local function IsIFHidden()
+    df('IF.state = %s', IF.state)
+    return IF.state == 'hidden' or IF.state == 'hiding'
+end
+
+local function UpdateKeybindStrip()
+    d('Update kb strip')
+    if not (IsInGamepadPreferredMode() or IsConsoleUI()) then return end
+
+    if IsIFHidden() then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(IMMERSIVE_DIALOGUE_BUTTON_GROUP_HIDE)
+        KEYBIND_STRIP:AddKeybindButtonGroup(IMMERSIVE_DIALOGUE_BUTTON_GROUP_SHOW)
+    else
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(IMMERSIVE_DIALOGUE_BUTTON_GROUP_SHOW)
+        KEYBIND_STRIP:AddKeybindButtonGroup(IMMERSIVE_DIALOGUE_BUTTON_GROUP_HIDE)
+    end
+end
+
 function ImmersiveDialogue_ShowDialogue()
     d('ImmersiveDialogue_ShowDialogue')
     if SCENE_MANAGER.currentScene ~= IS then return end
 
     IF:Show()
 end
+IMMERSIVE_DIALOGUE_BUTTON_GROUP_SHOW[1].callback = ImmersiveDialogue_ShowDialogue
 
-local IMMERSIVE_DIALOGUE_BUTTON_GROUP = {
-    {
-        name = 'Show Dialogue',
-        keybind = 'UI_SHORTCUT_QUATERNARY',
-        callback = ImmersiveDialogue_ShowDialogue,
-    },
-    alignment = KEYBIND_STRIP_ALIGN_CENTER,
-}
+function ImmersiveDialogue_HideDialogue()
+    d('ImmersiveDialogue_HideDialogue')
+    if SCENE_MANAGER.currentScene ~= IS then return end
+
+    IF:Hide()
+end
+IMMERSIVE_DIALOGUE_BUTTON_GROUP_HIDE[1].callback = ImmersiveDialogue_HideDialogue
+
 
 function addon:DialogueUpdated()
     -- EVENT_CHATTER_BEGIN
@@ -127,10 +165,6 @@ function addon:DialogueUpdated()
 
     if self:ShouldHideDialogue() then
         IF:Hide()
-
-        if IsInGamepadPreferredMode() or IsConsoleUI() then
-            KEYBIND_STRIP:AddKeybindButtonGroup(IMMERSIVE_DIALOGUE_BUTTON_GROUP)
-        end
     end
 end
 
@@ -155,9 +189,7 @@ function addon:OnVOPlayingStateChanged()
 end
 
 
-function addon:Initialize()
-    self.whitelist = whitelist
-
+local function UpdateISAndIF()
     if IsInGamepadPreferredMode() then
         IS = SCENE_MANAGER:GetScene('gamepadInteract')
         IF = GAMEPAD_INTERACT_FRAGMENT
@@ -165,8 +197,35 @@ function addon:Initialize()
         IS = SCENE_MANAGER:GetScene('interact')
         IF = INTERACT_FRAGMENT
     end
+end
+
+
+function addon:Initialize()
+    self.whitelist = whitelist
+
+    UpdateISAndIF()
+
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, UpdateISAndIF)
+
+    local function fragmentStateChanged(oldState, newState)
+        if newState == SCENE_FRAGMENT_SHOWN then
+            UpdateKeybindStrip()
+        elseif newState == SCENE_FRAGMENT_HIDDEN then
+            UpdateKeybindStrip()
+        end
+    end
+
+    INTERACT_FRAGMENT:RegisterCallback('StateChange', fragmentStateChanged)
+    GAMEPAD_INTERACT_FRAGMENT:RegisterCallback('StateChange', fragmentStateChanged)
 
     -- self.hideInteractWindow = true
+
+    -- ZO_PreHook(GAMEPAD_INTERACTION, 'SelectChatterOptionByIndex', function()
+    --     if IsIFHidden() then
+    --         df('IF is hidden, preventing chatter option selection')
+    --         return true
+    --     end
+    -- end)
 
     -- ZO_PreHook(INTERACT_WINDOW, 'ShowInteractWindow', function()
     --     d('INTERACT_WINDOW:ShowInteractWindow')

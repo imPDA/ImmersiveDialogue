@@ -7,9 +7,7 @@ Hides dialogue while voiceover plays.
 Early development
 
 ### TODO
-- Add keybinds
-    - Show
-    - Replay?
 - Add settings
-    - Hide only some part of dialogue
-- Blacklist guild traders, etc.
+    - Hide only some UI parts of dialogue
+- Prevent option selection while interaction fragment hidden?
+    - How?

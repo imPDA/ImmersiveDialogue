@@ -4,6 +4,9 @@
             <Action name="IMMDIA_SHOW_DIALOGUE">
                 <Up>ImmersiveDialogue_ShowDialogue()</Up>
             </Action>
+            <Action name="IMMDIA_HIDE_DIALOGUE">
+                <Up>ImmersiveDialogue_HideDialogue()</Up>
+            </Action>
         </Category>
     </Layer>
 </Bindings>
