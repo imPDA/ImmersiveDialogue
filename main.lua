@@ -1,4 +1,5 @@
 local d = function(...) end
+local df = function(...) end
 
 local addon = {
     name = 'ImmersiveDialogue',
