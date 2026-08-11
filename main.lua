@@ -5,7 +5,7 @@ local addon = {
     name = 'ImmersiveDialogue',
     displayName = 'Immersive Dialogue',
     author = '@imPDA',
-    verison = 1,
+    verison = 4,
 }
 
 local EVENT_NAMESPACE = addon.name
@@ -91,7 +91,7 @@ local IS, IF  -- interact scene, interact fragment
 function addon:ShouldHideDialogue()
     for o = 1, GetChatterOptionCount() do
         local optionString, optionType, optionalArgument, isImportant, chosenBefore, teleportNPC, dialogueTone = GetChatterOption(o)
-        d(optionString, optionType)
+        df('option string: %s, type: %d', optionString, optionType)
 
         if self.whitelist[optionType] then
            return false
@@ -131,7 +131,7 @@ local function IsIFHidden()
 end
 
 local function UpdateKeybindStrip()
-    d('Update kb strip')
+    df('Update kb strip')
     if not (IsInGamepadPreferredMode() or IsConsoleUI()) then return end
 
     if IsIFHidden() then
@@ -144,7 +144,7 @@ local function UpdateKeybindStrip()
 end
 
 function ImmersiveDialogue_ShowDialogue()
-    d('ImmersiveDialogue_ShowDialogue')
+    df('ImmersiveDialogue_ShowDialogue')
     if SCENE_MANAGER.currentScene ~= IS then return end
 
     IF:Show()
@@ -152,7 +152,7 @@ end
 IMMERSIVE_DIALOGUE_BUTTON_GROUP_SHOW[1].callback = ImmersiveDialogue_ShowDialogue
 
 function ImmersiveDialogue_HideDialogue()
-    d('ImmersiveDialogue_HideDialogue')
+    df('ImmersiveDialogue_HideDialogue')
     if SCENE_MANAGER.currentScene ~= IS then return end
 
     IF:Hide()
@@ -162,7 +162,7 @@ IMMERSIVE_DIALOGUE_BUTTON_GROUP_HIDE[1].callback = ImmersiveDialogue_HideDialogu
 
 function addon:DialogueUpdated()
     -- EVENT_CHATTER_BEGIN
-    d('Chatter begin')
+    df('Chatter begin')
 
     if self:ShouldHideDialogue() then
         IF:Hide()
@@ -178,10 +178,8 @@ end
 -- end
 
 function addon:OnVOPlayingStateChanged()
-    d('VOPlayingStateChanged')
-
     local isPlaying = IsInteractVOPlaying()
-    d(tostring(isPlaying))
+    df('VOPlayingStateChanged, playing: %s', tostring(isPlaying))
 
     if isPlaying then return end
     if SCENE_MANAGER.currentScene ~= IS then return end
@@ -198,6 +196,14 @@ local function UpdateISAndIF()
         IS = SCENE_MANAGER:GetScene('interact')
         IF = INTERACT_FRAGMENT
     end
+
+    IS:RegisterCallback('StateChange', function(oldState, newState)
+        if newState == ZO_STATE.HIDING or newState == ZO_STATE.HIDDEN then
+            df('Interaction scene hiding/hidden, removing keybinds')
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(IMMERSIVE_DIALOGUE_BUTTON_GROUP_HIDE)
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(IMMERSIVE_DIALOGUE_BUTTON_GROUP_SHOW)
+        end
+    end)
 end
 
 
@@ -209,11 +215,8 @@ function addon:Initialize()
     EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, UpdateISAndIF)
 
     local function fragmentStateChanged(oldState, newState)
-        if newState == SCENE_FRAGMENT_SHOWN then
-            UpdateKeybindStrip()
-        elseif newState == SCENE_FRAGMENT_HIDDEN then
-            UpdateKeybindStrip()
-        end
+        df('INTERACT_FRAGMENT state changed: %s -> %s', oldState, newState)
+        UpdateKeybindStrip()
     end
 
     INTERACT_FRAGMENT:RegisterCallback('StateChange', fragmentStateChanged)
